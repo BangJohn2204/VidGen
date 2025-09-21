@@ -8,6 +8,8 @@ const GEMINI_API_KEY = 'AIzaSyBt6TdkYafD3r8u60d--ZqSisQ_SJMosCU';
 // Initialize app on page load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Gemini Video Generator ready!');
+    // Initialize input type display
+    toggleInputType();
 });
 
 // Toggle input type
@@ -83,9 +85,20 @@ function removeImage() {
 
 // Generate video
 async function generateVideo() {
-    const inputType = document.getElementById('inputType').value;
-    const videoLength = document.getElementById('videoLength').value;
-    const videoStyle = document.getElementById('videoStyle').value;
+    const inputTypeElement = document.getElementById('inputType');
+    const videoLengthElement = document.getElementById('videoLength');
+    const videoStyleElement = document.getElementById('videoStyle');
+    
+    // Check if elements exist
+    if (!inputTypeElement || !videoLengthElement || !videoStyleElement) {
+        console.error('Required form elements not found');
+        alert('Error: Form elements not found. Please refresh the page.');
+        return;
+    }
+    
+    const inputType = inputTypeElement.value;
+    const videoLength = videoLengthElement.value;
+    const videoStyle = videoStyleElement.value;
     
     // Get prompt based on input type
     let promptText = '';
@@ -98,7 +111,13 @@ async function generateVideo() {
     try {
         switch(inputType) {
             case 'text':
-                promptText = document.getElementById('textPrompt').value.trim();
+                const textPromptElement = document.getElementById('textPrompt');
+                if (!textPromptElement) {
+                    alert('Text prompt element not found');
+                    return;
+                }
+                
+                promptText = textPromptElement.value.trim();
                 if (!promptText) {
                     alert('Please enter a text prompt!');
                     return;
@@ -113,7 +132,13 @@ async function generateVideo() {
                 break;
                 
             case 'json':
-                const jsonPrompt = document.getElementById('jsonPrompt').value.trim();
+                const jsonPromptElement = document.getElementById('jsonPrompt');
+                if (!jsonPromptElement) {
+                    alert('JSON prompt element not found');
+                    return;
+                }
+                
+                const jsonPrompt = jsonPromptElement.value.trim();
                 if (!jsonPrompt) {
                     alert('Please enter a JSON prompt!');
                     return;
@@ -133,7 +158,13 @@ async function generateVideo() {
                 break;
                 
             case 'image':
-                const imagePrompt = document.getElementById('imagePrompt').value.trim();
+                const imagePromptElement = document.getElementById('imagePrompt');
+                if (!imagePromptElement) {
+                    alert('Image prompt element not found');
+                    return;
+                }
+                
+                const imagePrompt = imagePromptElement.value.trim();
                 if (!uploadedImageBase64) {
                     alert('Please upload an image first!');
                     return;
@@ -191,17 +222,37 @@ async function generateVideo() {
 
 // Show loading state
 function showLoading() {
-    document.getElementById('generateBtn').disabled = true;
-    document.getElementById('generateBtn').textContent = 'Generating...';
-    document.getElementById('loadingState').style.display = 'block';
-    document.getElementById('resultSection').style.display = 'none';
+    const generateBtn = document.getElementById('generateBtn');
+    const loadingState = document.getElementById('loadingState');
+    const resultSection = document.getElementById('resultSection');
+    
+    if (generateBtn) {
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Generating...';
+    }
+    
+    if (loadingState) {
+        loadingState.style.display = 'block';
+    }
+    
+    if (resultSection) {
+        resultSection.style.display = 'none';
+    }
 }
 
 // Hide loading state
 function hideLoading() {
-    document.getElementById('generateBtn').disabled = false;
-    document.getElementById('generateBtn').textContent = '🎬 Generate Video';
-    document.getElementById('loadingState').style.display = 'none';
+    const generateBtn = document.getElementById('generateBtn');
+    const loadingState = document.getElementById('loadingState');
+    
+    if (generateBtn) {
+        generateBtn.disabled = false;
+        generateBtn.textContent = '🎬 Generate Video';
+    }
+    
+    if (loadingState) {
+        loadingState.style.display = 'none';
+    }
 }
 
 // Display result
