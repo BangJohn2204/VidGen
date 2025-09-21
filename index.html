@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Video Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 Gemini Video Generator</h1>
+            <p>Generate video menggunakan AI dengan prompt teks atau foto</p>
+        </div>
+
+        <div class="main-content">
+            <!-- API Key Section -->
+            <div class="api-key-section">
+                <h3>🔑 Konfigurasi API</h3>
+                <div class="input-group">
+                    <label for="apiKey">Google Gemini API Key:</label>
+                    <input type="password" id="apiKey" placeholder="Masukkan API Key Anda">
+                    <small>API Key akan disimpan secara lokal dan tidak dikirim ke server lain</small>
+                </div>
+            </div>
+
+            <!-- Input Type Selection -->
+            <div class="input-section">
+                <div class="input-group">
+                    <label for="inputType">Pilih Tipe Input:</label>
+                    <select id="inputType" onchange="toggleInputType()">
+                        <option value="text">Prompt Teks Biasa</option>
+                        <option value="json">Prompt JSON</option>
+                        <option value="image">Upload Foto + Prompt</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Text Prompt Section -->
+            <div id="textPromptSection" class="input-section">
+                <div class="input-group">
+                    <label for="textPrompt">Prompt Teks:</label>
+                    <textarea id="textPrompt" rows="4" placeholder="Contoh: Buat video animasi kucing lucu bermain di taman selama 10 detik"></textarea>
+                </div>
+            </div>
+
+            <!-- JSON Prompt Section -->
+            <div id="jsonPromptSection" class="input-section" style="display: none;">
+                <div class="input-group">
+                    <label for="jsonPrompt">Prompt JSON:</label>
+                    <textarea id="jsonPrompt" rows="8" placeholder='
+{
+  "scene": "Pantai tropis saat sunset",
+  "duration": "15 seconds",
+  "style": "cinematic",
+  "elements": [
+    "Ombak yang tenang",
+    "Burung camar terbang",
+    "Cahaya matahari keemasan"
+  ],
+  "camera": "smooth panning shot"
+}'></textarea>
+                    <small>Masukkan struktur JSON yang valid untuk prompt yang lebih detail</small>
+                </div>
+            </div>
+
+            <!-- Image Upload Section -->
+            <div id="imagePromptSection" class="input-section" style="display: none;">
+                <div class="upload-area" onclick="document.getElementById('imageInput').click()">
+                    <div class="upload-content">
+                        <div class="upload-icon">📁</div>
+                        <p>Klik untuk upload foto</p>
+                        <small>JPG, PNG, WebP (Max 10MB)</small>
+                    </div>
+                    <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                </div>
+                
+                <div id="imagePreview" class="image-preview" style="display: none;">
+                    <img id="previewImg" src="" alt="Preview">
+                    <button onclick="removeImage()" class="remove-btn">❌</button>
+                </div>
+
+                <div class="input-group">
+                    <label for="imagePrompt">Prompt untuk foto:</label>
+                    <textarea id="imagePrompt" rows="3" placeholder="Contoh: Ubah foto ini menjadi video dengan efek hujan dan petir"></textarea>
+                </div>
+            </div>
+
+            <!-- Generation Controls -->
+            <div class="controls-section">
+                <div class="input-group">
+                    <label for="videoLength">Durasi Video (detik):</label>
+                    <input type="number" id="videoLength" value="10" min="1" max="60">
+                </div>
+                
+                <div class="input-group">
+                    <label for="videoStyle">Style Video:</label>
+                    <select id="videoStyle">
+                        <option value="realistic">Realistik</option>
+                        <option value="animated">Animasi</option>
+                        <option value="cinematic">Sinematik</option>
+                        <option value="artistic">Artistik</option>
+                        <option value="vintage">Vintage</option>
+                    </select>
+                </div>
+
+                <button id="generateBtn" onclick="generateVideo()" class="generate-btn">
+                    🎬 Generate Video
+                </button>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="loading-state" style="display: none;">
+                <div class="spinner"></div>
+                <p>Sedang menggenerate video...</p>
+            </div>
+
+            <!-- Result Section -->
+            <div id="resultSection" class="result-section" style="display: none;">
+                <h3>📹 Hasil Generate:</h3>
+                <div id="videoResult" class="video-result"></div>
+                <div id="errorResult" class="error-result" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
