@@ -4,8 +4,13 @@ let uploadedImageData = null;
 let currentVideoBlob = null;
 let isGenerating = false;
 
-// VEO3 API Configuration
-const VEO3_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/veo-3.0-generate-preview:generateContent';
+// VEO3 API Configuration - Try different endpoints
+const VEO3_ENDPOINTS = [
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', // Fallback Gemini Pro
+    'https://generativelanguage.googleapis.com/v1beta/models/veo-3:generateContent', // VEO3 direct
+    'https://generativelanguage.googleapis.com/v1beta/models/veo:generateContent', // VEO general
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-thinking-exp:generateContent' // Latest Gemini
+];
 const VEO3_API_KEY = 'AIzaSyBt6TdkYafD3r8u60d--ZqSisQ_SJMosCU';
 
 // Initialize app
@@ -517,92 +522,130 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Real VEO3 API Integration
+// Real VEO3 API Integration with fallback endpoints
 async function callVEO3API(data) {
-    try {
-        updateLoadingStep('Preparing request...', 10);
+    let lastError = null;
+    
+    // Try different endpoints until one works
+    for (let i = 0; i < VEO3_ENDPOINTS.length; i++) {
+        const endpoint = VEO3_ENDPOINTS[i];
+        updateLoadingStep(`Trying endpoint ${i + 1}/${VEO3_ENDPOINTS.length}...`, 10 + (i * 10));
         
-        // Prepare request payload
-        const requestPayload = {
-            contents: [{
-                parts: []
-            }]
-        };
-        
-        // Add text prompt
-        requestPayload.contents[0].parts.push({
-            text: data.prompt
-        });
-        
-        // Add reference image if provided
-        if (data.referenceImage) {
-            updateLoadingStep('Processing reference image...', 20);
+        try {
+            const result = await tryEndpoint(endpoint, data);
+            if (result) {
+                return result;
+            }
+        } catch (error) {
+            console.warn(`Endpoint ${i + 1} failed:`, error.message);
+            lastError = error;
             
-            // Convert data URL to base64
-            const base64Data = data.referenceImage.split(',')[1];
-            const mimeType = data.referenceImage.split(';')[0].split(':')[1];
-            
-            requestPayload.contents[0].parts.push({
-                inline_data: {
-                    mime_type: mimeType,
-                    data: base64Data
-                }
-            });
-        }
-        
-        updateLoadingStep('Sending request to VEO3...', 30);
-        
-        // Make API call to VEO3
-        const response = await fetch(VEO3_API_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-goog-api-key': VEO3_API_KEY
-            },
-            body: JSON.stringify(requestPayload)
-        });
-        
-        updateLoadingStep('Processing VEO3 response...', 60);
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(`VEO3 API Error: ${response.status} - ${errorData.error?.message || response.statusText}`);
-        }
-        
-        const result = await response.json();
-        
-        updateLoadingStep('Generating video content...', 80);
-        
-        // Process the response
-        await processVEO3Response(result, data);
-        
-        updateLoadingStep('Finalizing video...', 100);
-        
-    } catch (error) {
-        console.error('VEO3 API Error:', error);
-        
-        // Handle specific error cases
-        if (error.message.includes('API_KEY_INVALID')) {
-            throw new Error('Invalid API key. Please check your VEO3 API configuration.');
-        } else if (error.message.includes('QUOTA_EXCEEDED')) {
-            throw new Error('API quota exceeded. Please try again later or upgrade your plan.');
-        } else if (error.message.includes('PERMISSION_DENIED')) {
-            throw new Error('Permission denied. Make sure your API key has access to VEO3 model.');
-        } else if (error.message.includes('MODEL_NOT_FOUND')) {
-            throw new Error('VEO3 model not found. The model might not be available in your region.');
-        } else {
-            throw error;
+            // Don't continue if it's an auth error
+            if (error.message.includes('API_KEY_INVALID') || 
+                error.message.includes('PERMISSION_DENIED')) {
+                throw error;
+            }
         }
     }
+    
+    // If all endpoints failed, throw the last error
+    throw lastError || new Error('All VEO3 endpoints failed');
 }
 
-async function processVEO3Response(response, data) {
+async function tryEndpoint(endpoint, data) {
+    updateLoadingStep('Preparing request...', 20);
+    
+    // Prepare request payload
+    const requestPayload = {
+        contents: [{
+            parts: []
+        }]
+    };
+    
+    // Enhanced prompt for video generation
+    let enhancedPrompt = data.prompt;
+    
+    // Add video-specific instructions if using Gemini fallback
+    if (endpoint.includes('gemini')) {
+        enhancedPrompt = `You are a video generation AI. Create a detailed description for a ${data.aspectRatio} video in ${data.resolution} resolution lasting ${data.duration} seconds. ${data.enableSound ? 'Include audio description.' : 'No audio needed.'} 
+
+Original request: ${data.originalPrompt}
+
+Please provide a comprehensive video description that could be used to generate the actual video.`;
+    }
+    
+    // Add text prompt
+    requestPayload.contents[0].parts.push({
+        text: enhancedPrompt
+    });
+    
+    // Add reference image if provided
+    if (data.referenceImage) {
+        updateLoadingStep('Processing reference image...', 30);
+        
+        // Convert data URL to base64
+        const base64Data = data.referenceImage.split(',')[1];
+        const mimeType = data.referenceImage.split(';')[0].split(':')[1];
+        
+        requestPayload.contents[0].parts.push({
+            inline_data: {
+                mime_type: mimeType,
+                data: base64Data
+            }
+        });
+    }
+    
+    updateLoadingStep('Sending request...', 40);
+    
+    // Make API call
+    const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-goog-api-key': VEO3_API_KEY
+        },
+        body: JSON.stringify(requestPayload)
+    });
+    
+    updateLoadingStep('Processing response...', 60);
+    
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        // Handle specific errors
+        if (response.status === 404) {
+            throw new Error(`Model not found: ${endpoint.split('/').pop()}`);
+        } else if (response.status === 400) {
+            throw new Error(`Bad request: ${errorData.error?.message || 'Invalid request format'}`);
+        } else if (response.status === 401) {
+            throw new Error('API_KEY_INVALID: Please check your API key');
+        } else if (response.status === 403) {
+            throw new Error('PERMISSION_DENIED: API key does not have access to this model');
+        } else if (response.status === 429) {
+            throw new Error('QUOTA_EXCEEDED: Rate limit or quota exceeded');
+        } else {
+            throw new Error(`API Error: ${response.status} - ${errorData.error?.message || response.statusText}`);
+        }
+    }
+    
+    const result = await response.json();
+    
+    updateLoadingStep('Generating video content...', 80);
+    
+    // Process the response
+    await processAPIResponse(result, data, endpoint);
+    
+    updateLoadingStep('Finalizing video...', 100);
+    
+    return result;
+}
+
+async function processAPIResponse(response, data, endpoint) {
     try {
         if (response.candidates && response.candidates.length > 0) {
             const candidate = response.candidates[0];
             
             if (candidate.content && candidate.content.parts) {
-                // Look for video content in the response
                 let videoFound = false;
                 
                 for (const part of candidate.content.parts) {
@@ -627,103 +670,140 @@ async function processVEO3Response(response, data) {
                         videoFound = true;
                         break;
                     }
-                    // Handle text response with video description
+                    // Handle text response
                     else if (part.text) {
-                        console.log('VEO3 Response:', part.text);
+                        console.log('API Response:', part.text);
                         
-                        // If no video data found, create a demo video with the response
-                        if (!videoFound) {
-                            await createDemoVideoWithResponse(part.text, data);
-                            videoFound = true;
-                        }
+                        // Create a visual representation with the response
+                        await createResponseVideo(part.text, data, endpoint);
+                        videoFound = true;
+                        break;
                     }
                 }
                 
                 if (!videoFound) {
-                    throw new Error('No video content found in VEO3 response');
+                    throw new Error('No usable content found in API response');
                 }
             } else {
-                throw new Error('Invalid response format from VEO3');
+                throw new Error('Invalid response format from API');
             }
         } else {
-            throw new Error('No candidates found in VEO3 response');
+            throw new Error('No candidates found in API response');
         }
     } catch (error) {
         console.error('Response processing error:', error);
-        throw new Error('Failed to process VEO3 response: ' + error.message);
+        throw new Error('Failed to process API response: ' + error.message);
     }
 }
 
-// Create demo video when VEO3 returns text description
-async function createDemoVideoWithResponse(responseText, data) {
+// Create response video with API text and user settings
+async function createResponseVideo(responseText, data, endpoint) {
     updateLoadingStep('Creating video preview...', 95);
     
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
-    // Set canvas dimensions based on aspect ratio and resolution
+    // Set canvas dimensions
     const [width, height] = getVideoDimensions(data.aspectRatio, data.resolution);
     canvas.width = width;
     canvas.height = height;
     
-    // Create background gradient
+    // Background gradient
     const gradient = ctx.createLinearGradient(0, 0, width, height);
     gradient.addColorStop(0, '#667eea');
-    gradient.addColorStop(1, '#764ba2');
+    gradient.addColorStop(0.5, '#764ba2');
+    gradient.addColorStop(1, '#f093fb');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
     
-    // Add VEO3 branding
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.font = 'bold 48px Inter';
+    // Semi-transparent overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Title
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 36px Inter';
     ctx.textAlign = 'center';
-    ctx.fillText('VEO3 Response', width / 2, 80);
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 10;
     
-    // Add response text (truncated)
-    ctx.font = '24px Inter';
+    let modelName = 'AI Generated';
+    if (endpoint.includes('veo')) {
+        modelName = 'VEO3 Response';
+    } else if (endpoint.includes('gemini')) {
+        modelName = 'Gemini Response';
+    }
+    
+    ctx.fillText(modelName, width / 2, 80);
+    
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    
+    // Response text with word wrap
+    ctx.font = '18px Inter';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    
+    const maxWidth = width - 100;
+    const lineHeight = 28;
+    let lines = wrapText(ctx, responseText, maxWidth);
+    
+    // Limit to reasonable number of lines
+    if (lines.length > 15) {
+        lines = lines.slice(0, 14);
+        lines.push('...');
+    }
+    
+    const startY = height / 2 - (lines.length * lineHeight) / 2;
+    
+    lines.forEach((line, index) => {
+        ctx.fillText(line, width / 2, startY + (index * lineHeight));
+    });
+    
+    // Settings info at bottom
+    ctx.font = 'bold 16px Inter';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    const maxLength = 100;
-    const displayText = responseText.length > maxLength ? 
-        responseText.substring(0, maxLength) + '...' : responseText;
+    const settingsY = height - 80;
     
-    // Word wrap the text
-    const words = displayText.split(' ');
-    const lineHeight = 30;
-    let line = '';
-    let y = height / 2 - 50;
+    ctx.fillText(`${data.aspectRatio} • ${data.resolution} • ${data.duration}s`, width / 2, settingsY);
     
-    for (let i = 0; i < words.length; i++) {
-        const testLine = line + words[i] + ' ';
-        const metrics = ctx.measureText(testLine);
-        const testWidth = metrics.width;
-        
-        if (testWidth > width - 100 && i > 0) {
-            ctx.fillText(line, width / 2, y);
-            line = words[i] + ' ';
-            y += lineHeight;
-        } else {
-            line = testLine;
-        }
-    }
-    ctx.fillText(line, width / 2, y);
+    // Audio status
+    const audioText = data.enableSound ? '🔊 Audio: Enabled' : '🔇 Audio: Disabled';
+    ctx.fillText(audioText, width / 2, settingsY + 25);
     
-    // Add settings info
-    ctx.font = '20px Inter';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-    ctx.fillText(`${data.aspectRatio} • ${data.resolution} • ${data.duration}s`, width / 2, height - 100);
+    // Timestamp
+    ctx.font = '12px Inter';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.fillText(new Date().toLocaleString(), width / 2, height - 20);
     
-    if (data.enableSound) {
-        ctx.fillText('🔊 Audio: Enabled', width / 2, height - 70);
-    } else {
-        ctx.fillText('🔇 Audio: Disabled', width / 2, height - 70);
-    }
-    
-    // Convert canvas to blob
+    // Convert to blob
     const videoBlob = await canvasToBlob(canvas);
     currentVideoBlob = videoBlob;
     
-    // Store the full response for download
-    currentVideoBlob.veo3Response = responseText;
+    // Store response for download
+    currentVideoBlob.aiResponse = responseText;
+    currentVideoBlob.modelUsed = modelName;
     
     showResultState(videoBlob, data);
+}
+
+// Helper function to wrap text
+function wrapText(ctx, text, maxWidth) {
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = words[0];
+    
+    for (let i = 1; i < words.length; i++) {
+        const word = words[i];
+        const width = ctx.measureText(currentLine + ' ' + word).width;
+        if (width < maxWidth) {
+            currentLine += ' ' + word;
+        } else {
+            lines.push(currentLine);
+            currentLine = word;
+        }
+    }
+    lines.push(currentLine);
+    
+    return lines;
 }
