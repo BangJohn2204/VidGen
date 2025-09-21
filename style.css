@@ -48,11 +48,24 @@ body {
 }
 
 .api-key-section {
-    background: #f8f9ff;
+    background: #f0f9ff;
     padding: 25px;
     border-radius: 15px;
-    border: 2px solid #e1e8ff;
+    border: 2px solid #7dd3fc;
     margin-bottom: 30px;
+}
+
+.api-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1em;
+    font-weight: 500;
+    color: #059669;
+}
+
+.status-indicator {
+    font-size: 1.2em;
 }
 
 .api-key-section h3 {
