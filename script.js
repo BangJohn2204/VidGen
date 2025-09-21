@@ -2,17 +2,12 @@
 let uploadedImageBase64 = null;
 let uploadedImageType = null;
 
-// Load saved API key on page load
-document.addEventListener('DOMContentLoaded', function() {
-    const savedApiKey = localStorage.getItem('gemini_api_key');
-    if (savedApiKey) {
-        document.getElementById('apiKey').value = savedApiKey;
-    }
-});
+// API Key yang sudah disediakan
+const GEMINI_API_KEY = 'AIzaSyBt6TdkYafD3r8u60d--ZqSisQ_SJMosCU';
 
-// Save API key to localStorage
-document.getElementById('apiKey').addEventListener('change', function() {
-    localStorage.setItem('gemini_api_key', this.value);
+// Initialize app on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Gemini Video Generator ready!');
 });
 
 // Toggle input type
@@ -88,16 +83,9 @@ function removeImage() {
 
 // Generate video
 async function generateVideo() {
-    const apiKey = document.getElementById('apiKey').value.trim();
     const inputType = document.getElementById('inputType').value;
     const videoLength = document.getElementById('videoLength').value;
     const videoStyle = document.getElementById('videoStyle').value;
-    
-    // Validate API key
-    if (!apiKey) {
-        alert('Please enter your Google Gemini API key!');
-        return;
-    }
     
     // Get prompt based on input type
     let promptText = '';
@@ -179,7 +167,7 @@ async function generateVideo() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-goog-api-key': apiKey
+                'X-goog-api-key': GEMINI_API_KEY
             },
             body: JSON.stringify(requestData)
         });
