@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Tools Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/intro.js/introjs.css" rel="stylesheet">
+    <script src="https://unpkg.com/intro.js/intro.js"></script>
+    <style>
+      body {
+        font-family: 'Poppins', sans-serif;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #94A3B8; /* neutral-400 */
+        border-radius: 10px;
+      }
+      .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #475569; /* neutral-600 */
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #64748B; /* neutral-500 */
+      }
+       .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #334155; /* neutral-700 */
+      }
+      /* Custom Intro.js styles */
+      .introjs-tooltip {
+        font-family: 'Poppins', sans-serif;
+        background-color: #F8FAFC; /* neutral-50 */
+        border-radius: 12px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border: 1px solid #E2E8F0; /* neutral-200 */
+        padding: 20px;
+      }
+      .dark .introjs-tooltip {
+         background-color: #1E293B; /* neutral-800 */
+         border-color: #334155; /* neutral-700 */
+      }
+      .introjs-tooltiptext {
+         color: #475569; /* neutral-600 */
+      }
+      .dark .introjs-tooltiptext {
+         color: #CBD5E1; /* neutral-300 */
+      }
+      .introjs-tooltip-title {
+        font-weight: 700;
+        font-size: 1.125rem;
+        color: #0F172A; /* neutral-900 */
+      }
+      .dark .introjs-tooltip-title {
+        color: #F1F5F9; /* neutral-100 */
+      }
+      .introjs-button {
+        text-shadow: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 600;
+        border: none;
+        box-shadow: none;
+        transition: all 0.2s;
+      }
+      .introjs-button.introjs-prevbutton {
+        background-color: #E2E8F0; /* neutral-200 */
+        color: #334155; /* neutral-700 */
+      }
+      .dark .introjs-button.introjs-prevbutton {
+        background-color: #334155; /* neutral-700 */
+        color: #F1F5F9; /* neutral-100 */
+      }
+      .introjs-button.introjs-nextbutton {
+        background-color: #6366F1; /* indigo-500 */
+        color: white;
+      }
+      .introjs-button:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+      .introjs-skipbutton {
+         color: #64748B; /* neutral-500 */
+         font-size: 0.875rem;
+      }
+      .dark .introjs-skipbutton {
+          color: #94A3B8; /* neutral-400 */
+      }
+      .introjs-progress {
+        background-color: #E2E8F0; /* neutral-200 */
+      }
+      .dark .introjs-progress {
+        background-color: #334155; /* neutral-700 */
+      }
+      .introjs-progressbar {
+        background-color: #6366F1; /* indigo-500 */
+      }
+    </style>
+    <script>
+      // Set theme on initial load to prevent FOUC
+      if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            animation: {
+              shimmer: 'shimmer 1.5s infinite linear',
+            },
+            keyframes: {
+              shimmer: {
+                '0%': { transform: 'translateX(-100%)' },
+                '100%': { transform: 'translateX(100%)' },
+              },
+            },
+            colors: {
+              'primary-blue-light': '#818CF8', // indigo-400
+              'primary-blue': '#6366F1',       // indigo-500
+              'primary-dark': '#4F46E5',       // indigo-600
+              'neutral-900': '#0F172A', // text-primary
+              'neutral-800': '#1E293B',
+              'neutral-700': '#334155',
+              'neutral-600': '#475569', // text-secondary
+              'neutral-500': '#64748B',
+              'neutral-400': '#94A3B8', // text-muted
+              'neutral-300': '#CBD5E1', // border-default
+              'neutral-200': '#E2E8F0', // border-light
+              'neutral-100': '#F1F5F9', // bg-tertiary
+              'neutral-50':  '#F8FAFC',  // bg-secondary
+              'success': '#10B981',
+              'warning': '#F59E0B',
+              'error': '#EF4444',
+              'info': '#3B82F6',
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^0.14.0",
+    "intro.js": "https://aistudiocdn.com/intro.js@^8.3.2"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-neutral-50 dark:bg-neutral-900">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
