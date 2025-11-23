@@ -1,5 +1,0 @@
-{
-  "name": "VEO3 Video Generator",
-  "description": "An advanced web application that utilizes the VEO3 model to generate high-quality videos from text prompts and reference images. Users can customize aspect ratio, sound, and resolution for their video creations.",
-  "requestFramePermissions": []
-}
